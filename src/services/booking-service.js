@@ -77,11 +77,11 @@ async function makePayment(data) {
   }
 }
 
-async function cancelBooking(bookingId){
+async function cancelBooking(bookingId) {
   const transaction = await db.sequelize.transaction();
   try {
-    const bookingDetails = await bookingRepository.get(bookingId,transaction);
-    if(bookingDetails.status == CANCELLED){
+    const bookingDetails = await bookingRepository.get(bookingId, transaction);
+    if (bookingDetails.status == CANCELLED) {
       await transaction.commit();
       return true;
     }
@@ -89,18 +89,32 @@ async function cancelBooking(bookingId){
       `${ServerConfig.FLIGHT_SERVICE}/api/v1/flights/${data.flightId}/seats`,
       {
         seats: bookingDetails.noOfSeats,
-        dec : 0
+        dec: 0,
       }
     );
-    await bookingRepository.update(bookingId,{status:CANCELLED},transaction);
+    await bookingRepository.update(
+      bookingId,
+      { status: CANCELLED },
+      transaction
+    );
     await transaction.commit();
-  }
-  catch(error){
+  } catch (error) {
     await transaction.rollback();
     throw error;
+  }
+}
+
+async function cancelOldBookings() {
+  try {
+    const time = new Date(Date.now() - 1000 * 300);
+    const response = await bookingRepository.cancelOldBookings(time);
+    return response;
+  } catch (error) {
+    console.log(error);
   }
 }
 module.exports = {
   createBooking,
   makePayment,
+  cancelOldBookings,
 };
